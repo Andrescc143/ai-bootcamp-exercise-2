@@ -171,5 +171,39 @@ describe('API Endpoints', () => {
       expect(updateResponse.status).toBe(404);
       expect(updateResponse.body).toHaveProperty('error', 'Item not found');
     });
+
+    it('should return 400 for invalid id format', async () => {
+      const updateResponse = await request(app)
+        .put('/api/items/abc')
+        .send({ status: 'Started' })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.body).toHaveProperty('error', 'Valid item ID is required');
+    });
+
+    it('should return 400 for empty name when updating', async () => {
+      const item = await createItem('Name Validation');
+
+      const updateResponse = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({ name: '   ' })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.body).toHaveProperty('error', 'Item name is required');
+    });
+
+    it('should return 400 for non-string name when updating', async () => {
+      const item = await createItem('Name Type Validation');
+
+      const updateResponse = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({ name: 123 })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.body).toHaveProperty('error', 'Item name is required');
+    });
   });
 });
