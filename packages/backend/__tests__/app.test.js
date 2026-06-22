@@ -33,6 +33,7 @@ describe('API Endpoints', () => {
       const item = response.body[0];
       expect(item).toHaveProperty('id');
       expect(item).toHaveProperty('name');
+      expect(item).toHaveProperty('status');
       expect(item).toHaveProperty('created_at');
     });
   });
@@ -48,6 +49,7 @@ describe('API Endpoints', () => {
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(newItem.name);
+      expect(response.body.status).toBe('Defined');
       expect(response.body).toHaveProperty('created_at');
     });
 
@@ -97,6 +99,77 @@ describe('API Endpoints', () => {
       const response = await request(app).delete('/api/items/abc');
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error', 'Valid item ID is required');
+    });
+  });
+
+  describe('PUT /api/items/:id', () => {
+    it('should update item name and status', async () => {
+      const item = await createItem('Item To Update');
+
+      const updateResponse = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({ name: 'Updated Item', status: 'Started' })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(200);
+      expect(updateResponse.body).toMatchObject({
+        id: item.id,
+        name: 'Updated Item',
+        status: 'Started',
+      });
+    });
+
+    it('should update only status', async () => {
+      const item = await createItem('Status Only Update');
+
+      const updateResponse = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({ status: 'Completed' })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(200);
+      expect(updateResponse.body).toMatchObject({
+        id: item.id,
+        name: 'Status Only Update',
+        status: 'Completed',
+      });
+    });
+
+    it('should return 400 for invalid status', async () => {
+      const item = await createItem('Invalid Status Update');
+
+      const updateResponse = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({ status: 'Blocked' })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.body).toHaveProperty('error', 'Valid status is required');
+    });
+
+    it('should return 400 with empty body', async () => {
+      const item = await createItem('Empty Body Update');
+
+      const updateResponse = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({})
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.body).toHaveProperty(
+        'error',
+        'At least one field (name or status) is required'
+      );
+    });
+
+    it('should return 404 for missing item', async () => {
+      const updateResponse = await request(app)
+        .put('/api/items/999999')
+        .send({ status: 'Started' })
+        .set('Accept', 'application/json');
+
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.body).toHaveProperty('error', 'Item not found');
     });
   });
 });
